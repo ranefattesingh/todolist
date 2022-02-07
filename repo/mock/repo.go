@@ -43,6 +43,10 @@ func (m *myRepo) DeleteTodo(ctx context.Context, id int) error {
 	return nil
 }
 
+func (m *myRepo) UpdateStatus(ctx context.Context, id int) error {
+	return nil
+}
+
 func NewRepo() (*myRepo, error) {
 	return &myRepo{}, nil
 }

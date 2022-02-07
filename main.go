@@ -4,8 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strconv"
 
+	"github.com/ranefattesingh/todolist/core"
 	"github.com/ranefattesingh/todolist/repo/psql"
 )
 
@@ -36,60 +40,109 @@ func main() {
 			rw.Write(r)
 
 		} else if r.Method == http.MethodPut {
-			// regx, err := regexp.Compile("[0-9]+")
-			// if err != nil {
-			// 	fmt.Println(err)
-			// }
-			// idString := regx.FindString(r.URL.Path)
-			// var id int
-			// id, err = strconv.Atoi(idString)
-			// var todos todoItems
-			// for i, d := range todos {
-			// 	if d.ID == id {
-			// 		var b []byte
-			// 		b, err = ioutil.ReadAll(r.Body)
-			// 		var todo *todoItem = &todoItem{}
-			// 		err = json.Unmarshal(b, todo)
-			// 		if err != nil {
-			// 			fmt.Println(err)
-			// 			return
-			// 		}
-			// 		todo.ID = id
-			// 		todos[i] = todo
-			// 		fmt.Println(*todos[i])
-			// 		return
-			// 	}
-			// }
-			// rw.Write([]byte("Not Found"))
-		} else if r.Method == http.MethodPost {
-			// b, err := ioutil.ReadAll(r.Body)
-			// if err != nil {
-			// 	fmt.Println(err)
-			// 	return
-			// }
+			regx, err := regexp.Compile("[0-9]+")
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			idString := regx.FindString(r.URL.Path)
+			var id int
+			id, err = strconv.Atoi(idString)
 
-			// var todo *todoItem = &todoItem{}
-			// json.Unmarshal(b, todo)
-			// // todoItems = append(todoItems, todo)
-			// rw.WriteHeader(http.StatusCreated)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			ctx := context.Background()
+			b, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			todoItem := &core.TodoItem{}
+			err = json.Unmarshal(b, todoItem)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			err = repo.UpdateTodo(ctx, id, todoItem)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			rw.WriteHeader(http.StatusOK)
+
+		} else if r.Method == http.MethodPost {
+			ctx := context.Background()
+			b, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			todoItem := &core.TodoItem{}
+			err = json.Unmarshal(b, todoItem)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			err = repo.AddTodo(ctx, todoItem)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			rw.WriteHeader(http.StatusCreated)
 
 		} else if r.Method == http.MethodDelete {
-			// regx, err := regexp.Compile("[0-9]+")
-			// if err != nil {
-			// 	fmt.Println(err)
-			// }
-			// idString := regx.FindString(r.URL.Path)
-			// var id int
-			// id, err = strconv.Atoi(idString)
-			// for i, d := range todoItems {
-			// 	if d.ID == id {
-			// 		todoItems = append(todoItems[0:i], todoItems[i+1:]...)
-			// 		return
-			// 	}
-			// }
-			rw.Write([]byte("Not Found"))
+			regx, err := regexp.Compile("[0-9]+")
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			idString := regx.FindString(r.URL.Path)
+			var id int
+			id, err = strconv.Atoi(idString)
+
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			ctx := context.Background()
+			err = repo.DeleteTodo(ctx, id)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			rw.WriteHeader(http.StatusOK)
+		} else if r.Method == http.MethodPatch {
+			regx, err := regexp.Compile("[0-9]+")
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			idString := regx.FindString(r.URL.Path)
+			var id int
+			id, err = strconv.Atoi(idString)
+
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			ctx := context.Background()
+			err = repo.UpdateStatus(ctx, id)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			rw.WriteHeader(http.StatusOK)
 		}
-		// rw.Write([]byte("Not Found"))
 
 	})
 	http.ListenAndServe(":8000", nil)
