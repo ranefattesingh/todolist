@@ -58,7 +58,6 @@ func (m *myRepo) UpdateTodo(ctx context.Context, id int, item *core.TodoItem) er
 func (m *myRepo) AddTodo(ctx context.Context, item *core.TodoItem) error {
 	queryCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
-	time.Sleep(10 * time.Second)
 	q := fmt.Sprintf("INSERT INTO todo_item(Id, Title, Description) VALUES(%d, '%s', '%s')",
 		item.ID,
 		item.Title,

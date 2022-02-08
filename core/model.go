@@ -1,5 +1,10 @@
 package core
 
+import (
+	"encoding/json"
+	"io"
+)
+
 type TodoItem struct {
 	ID          int    `json:"id"`
 	Title       string `json:"title"`
@@ -8,3 +13,15 @@ type TodoItem struct {
 }
 
 type TodoItems []*TodoItem
+
+func (ts *TodoItems) ToJSON(w io.Writer) error {
+	return json.NewEncoder(w).Encode(ts)
+}
+
+func (ts *TodoItem) ToJSON(w io.Writer) error {
+	return json.NewEncoder(w).Encode(ts)
+}
+
+func (t *TodoItem) FromJSON(r io.Reader) error {
+	return json.NewDecoder(r).Decode(t)
+}
