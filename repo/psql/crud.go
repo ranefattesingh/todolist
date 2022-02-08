@@ -3,12 +3,15 @@ package psql
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/ranefattesingh/todolist/core"
 )
 
 func (m *myRepo) GetAll(ctx context.Context) (*core.TodoItems, error) {
-	row := m.db.QueryRow("SELECT COUNT(Id) FROM todo_item")
+	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	row := m.db.QueryRowContext(queryCtx, "SELECT COUNT(Id) FROM todo_item")
 
 	var count int
 	if err := row.Scan(&count); err != nil {
@@ -16,7 +19,7 @@ func (m *myRepo) GetAll(ctx context.Context) (*core.TodoItems, error) {
 	}
 
 	todos := make(core.TodoItems, count)
-	rows, err := m.db.Query("SELECT Id, Title, Description, Status FROM todo_item")
+	rows, err := m.db.QueryContext(queryCtx, "SELECT Id, Title, Description, Status FROM todo_item")
 	if err != nil {
 		return nil, err
 	}
@@ -33,6 +36,8 @@ func (m *myRepo) GetAll(ctx context.Context) (*core.TodoItems, error) {
 }
 
 func (m *myRepo) UpdateTodo(ctx context.Context, id int, item *core.TodoItem) error {
+	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	q := fmt.Sprintf(`
 		UPDATE todo_item
 		SET Title = '%s',
@@ -41,7 +46,7 @@ func (m *myRepo) UpdateTodo(ctx context.Context, id int, item *core.TodoItem) er
 		WHERE
 		Id = %d
 	`, item.Title, item.Description, item.Status, id)
-	_, err := m.db.Exec(q)
+	_, err := m.db.ExecContext(queryCtx, q)
 
 	if err != nil {
 		return err
@@ -51,13 +56,16 @@ func (m *myRepo) UpdateTodo(ctx context.Context, id int, item *core.TodoItem) er
 }
 
 func (m *myRepo) AddTodo(ctx context.Context, item *core.TodoItem) error {
+	queryCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	time.Sleep(10 * time.Second)
 	q := fmt.Sprintf("INSERT INTO todo_item(Id, Title, Description) VALUES(%d, '%s', '%s')",
 		item.ID,
 		item.Title,
 		item.Description,
 	)
 
-	_, err := m.db.Exec(q)
+	_, err := m.db.ExecContext(queryCtx, q)
 	if err != nil {
 		return err
 	}
@@ -66,6 +74,8 @@ func (m *myRepo) AddTodo(ctx context.Context, item *core.TodoItem) error {
 }
 
 func (m *myRepo) UpdateStatus(ctx context.Context, id int) error {
+	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 	row := m.db.QueryRow(fmt.Sprintf("SELECT COALESCE(Status, FALSE) FROM todo_item WHERE Id=%d", id))
 
 	var status bool
@@ -74,7 +84,7 @@ func (m *myRepo) UpdateStatus(ctx context.Context, id int) error {
 	}
 
 	q := fmt.Sprintf("UPDATE todo_item SET Status = %t WHERE Id = %d", !status, id)
-	_, err := m.db.Exec(q)
+	_, err := m.db.ExecContext(queryCtx, q)
 	if err != nil {
 		return err
 	}
@@ -83,7 +93,9 @@ func (m *myRepo) UpdateStatus(ctx context.Context, id int) error {
 }
 
 func (m *myRepo) DeleteTodo(ctx context.Context, id int) error {
-	_, err := m.db.Exec(fmt.Sprintf("DELETE FROM todo_item WHERE Id=%d", id))
+	queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	_, err := m.db.ExecContext(queryCtx, fmt.Sprintf("DELETE FROM todo_item WHERE Id=%d", id))
 	if err != nil {
 		return err
 	}

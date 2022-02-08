@@ -14,7 +14,9 @@ import (
 )
 
 func main() {
-	repo, err := psql.NewRepo()
+	var repo core.TodoRepo
+	var err error
+	repo, err = psql.NewRepo()
 
 	if err != nil {
 		fmt.Println(err)
@@ -38,7 +40,6 @@ func main() {
 				return
 			}
 			rw.Write(r)
-
 		} else if r.Method == http.MethodPut {
 			regx, err := regexp.Compile("[0-9]+")
 			if err != nil {
@@ -75,9 +76,7 @@ func main() {
 			}
 
 			rw.WriteHeader(http.StatusOK)
-
 		} else if r.Method == http.MethodPost {
-			ctx := context.Background()
 			b, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				fmt.Println(err)
@@ -91,13 +90,24 @@ func main() {
 				return
 			}
 
-			err = repo.AddTodo(ctx, todoItem)
+			err = repo.AddTodo(r.Context(), todoItem)
+
+			switch r.Context().Err() {
+			case context.Canceled:
+				fmt.Println("Request is cancelled by user.")
+				rw.WriteHeader(http.StatusNotModified)
+				return
+
+			case context.DeadlineExceeded:
+				fmt.Println("Request Timeout.")
+				rw.WriteHeader(http.StatusRequestTimeout)
+				return
+			}
+
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			rw.WriteHeader(http.StatusCreated)
-
 		} else if r.Method == http.MethodDelete {
 			regx, err := regexp.Compile("[0-9]+")
 			if err != nil {
